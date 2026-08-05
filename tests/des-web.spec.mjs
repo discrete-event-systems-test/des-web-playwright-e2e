@@ -1,11 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-const canonicalPages = [
+const sharedLayoutPages = [
   ["/", "Discrete-event sims & games"],
   ["/models", "Models"],
   ["/games/soccer", "Soccer"],
   ["/games/elevator", "Elevator"],
-  ["/tools/routing", "Routing"],
 ];
 
 test("liveness publishes the DES service contract", async ({ request }) => {
@@ -28,8 +27,8 @@ test("readiness is explicit even in degraded mode", async ({ request }) => {
   expect(response.status()).toBe(readiness.ready ? 200 : 503);
 });
 
-for (const [path, heading] of canonicalPages) {
-  test(`${path} renders a server-owned page`, async ({ page }) => {
+for (const [path, heading] of sharedLayoutPages) {
+  test(`${path} renders a shared-layout page`, async ({ page }) => {
     const response = await page.goto(path, { waitUntil: "domcontentloaded" });
     expect(response?.status()).toBe(200);
     await expect(page.locator("header .brand")).toContainText("des-web");
@@ -40,6 +39,18 @@ for (const [path, heading] of canonicalPages) {
     ).toBeVisible();
   });
 }
+
+test("routing tool renders its self-contained solver dashboard", async ({ page }) => {
+  const response = await page.goto("/tools/routing", {
+    waitUntil: "domcontentloaded",
+  });
+  expect(response?.status()).toBe(200);
+  await expect(page).toHaveTitle(/Optimal routing/i);
+  await expect(page.getByRole("heading", { name: /optimal routing/i })).toBeVisible();
+  await expect(page.locator("#form")).toBeVisible();
+  await expect(page.locator("#status")).toHaveText("idle");
+  await expect(page.locator("#canvas")).toBeVisible();
+});
 
 test("mounted-mode HTML publishes only canonical /des navigation", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -64,12 +75,25 @@ test("service-local htmx partial remains available behind the gateway mount", as
   expect(html).toContain("/des/games/soccer/planner");
 });
 
-test("catalog API remains usable without Postgres", async ({ request }) => {
+test("catalog API publishes the canonical route envelope without Postgres", async ({ request }) => {
   const response = await request.get("/api/v1/catalog");
   expect(response.status()).toBe(200);
   const catalog = await response.json();
-  expect(Array.isArray(catalog)).toBe(true);
-  expect(catalog.length).toBeGreaterThanOrEqual(5);
+  expect(catalog).toMatchObject({
+    schema: "des.route-catalog.v1",
+    basePath: "/des",
+    pages: {
+      routing: "/des/tools/routing",
+      soccer: "/des/games/soccer",
+      elevator: "/des/games/elevator",
+    },
+    api: {
+      catalog: "/des/api/v1/catalog",
+    },
+    ownership: {
+      application: "discrete-event-systems/des-web.rs",
+    },
+  });
 });
 
 test("responses carry browser hardening headers", async ({ page }) => {
