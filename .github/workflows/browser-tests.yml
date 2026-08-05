@@ -1,11 +1,19 @@
 name: Playwright browser contracts
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_call:
+    inputs:
+      suite_ref:
+        description: Exact merged commit SHA of this test repository
+        required: true
+        type: string
   workflow_dispatch:
+    inputs:
+      suite_ref:
+        description: Test repository ref to execute
+        required: false
+        default: main
+        type: string
 
 permissions:
   contents: read
@@ -25,7 +33,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: discrete-event-systems-test/des-web-playwright-e2e
+          ref: ${{ inputs.suite_ref }}
           persist-credentials: false
+
+      - name: Authenticate to product GHCR package
+        run: echo "${{ github.token }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
 
       - name: Start immutable des-web image
         run: |
