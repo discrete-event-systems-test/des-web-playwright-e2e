@@ -49,7 +49,9 @@ test("mounted-mode HTML publishes only canonical /des navigation", async ({ page
   expect(hrefs.length).toBeGreaterThan(4);
   expect(
     hrefs.every(
-      (href) => typeof href === "string" && href.startsWith("/des/"),
+      (href) =>
+        typeof href === "string" &&
+        (href === "/des" || href.startsWith("/des/")),
     ),
   ).toBe(true);
 });
