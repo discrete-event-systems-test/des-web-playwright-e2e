@@ -3,9 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "playwright test",
-    "test:ci": "playwright test --reporter=line,html"
+    "test:ci": "playwright test --reporter=line,html",
+    "test:list": "playwright test --list",
+    "test:headed": "playwright test --headed",
+    "indie:submit": "node scripts/submit-indie.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.60.0"
