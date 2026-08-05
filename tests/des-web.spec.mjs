@@ -28,12 +28,16 @@ test("readiness is explicit even in degraded mode", async ({ request }) => {
   expect(response.status()).toBe(readiness.ready ? 200 : 503);
 });
 
-for (const [path, heading]) of canonicalPages) {
+for (const [path, heading] of canonicalPages) {
   test(`${path} renders a server-owned page`, async ({ page }) => {
     const response = await page.goto(path, { waitUntil: "domcontentloaded" });
     expect(response?.status()).toBe(200);
     await expect(page.locator("header .brand")).toContainText("des-web");
-    await expect(page.getByRole("heading", { name: new RegExp(heading, "i") }).first()).toBeVisible();
+    await expect(
+      page
+        .getByRole("heading", { name: new RegExp(heading, "i") })
+        .first(),
+    ).toBeVisible();
   });
 }
 
@@ -43,7 +47,11 @@ test("mounted-mode HTML publishes only canonical /des navigation", async ({ page
     links.map((link) => link.getAttribute("href")),
   );
   expect(hrefs.length).toBeGreaterThan(4);
-  expect(hrefs.every((href) => typeof href === "string" && href.startsWith("/des/"))).toBe(true);
+  expect(
+    hrefs.every(
+      (href) => typeof href === "string" && href.startsWith("/des/"),
+    ),
+  ).toBe(true);
 });
 
 test("service-local htmx partial remains available behind the gateway mount", async ({ request }) => {
@@ -66,7 +74,9 @@ test("responses carry browser hardening headers", async ({ page }) => {
   const response = await page.goto("/", { waitUntil: "domcontentloaded" });
   const headers = response?.headers() ?? {};
   expect(headers["content-security-policy"]).toContain("default-src 'self'");
-  expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(headers["content-security-policy"]).toContain(
+    "frame-ancestors 'none'",
+  );
   expect(headers["x-frame-options"]).toBe("DENY");
   expect(headers["x-content-type-options"]).toBe("nosniff");
   expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
