@@ -1,0 +1,23 @@
+name: Dispatch to gha-indie-worker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GHA_INDIE_WORKER_URL: ${{ vars.GHA_INDIE_WORKER_URL || 'https://54.91.17.58/builds' }}
+      GHA_INDIE_WORKER_AUTH: ${{ secrets.DES_GATEWAY_AUTH }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node scripts/submit-indie.mjs

@@ -1,18 +1,31 @@
-# des-web Playwright E2E
+# DES web Playwright end-to-end tests
 
-Independent Playwright browser contracts for [`discrete-event-systems/des-web.rs`](https://github.com/discrete-event-systems/des-web.rs).
+Primary cross-repository Chromium contracts for [`discrete-event-systems/des-web.rs`](https://github.com/discrete-event-systems/des-web.rs).
 
-## Runner lanes
+**Automation contract:** `des-browser-fleet.v1`
 
-- **GitHub Actions** starts the immutable deployed `des-web` image locally, runs Chromium contracts, and retains traces, screenshots, video, HTML reports, and server logs on failure.
-- **gha-indie-worker** consumes `.github/workflows/gha-indie-worker.yml` at an exact merged commit SHA and maps it to the fixed `playwright` profile. The suite defaults to the cluster-local `dd-des-web` service.
+This repository combines two complementary Playwright suites:
 
-The suite verifies health/readiness, canonical pages, `/des` path rewriting, direct htmx partials, degraded-mode catalog behavior, browser hardening headers, and the application 404.
+- `tests/des-web.spec.mjs` retains the first-party health/readiness, shared-layout, routing-dashboard, htmx partial, mounted-link, hardening-header, and application-404 contracts.
+- `tests/des-route-contract.spec.mjs` adds canonical public `/des` routes, catalog ownership, mounted-prefix navigation, bounded public errors, fixture provenance, and gateway-boundary coverage.
 
-## Tracking
+Execution lanes:
 
-- Product project: https://github.com/orgs/discrete-event-systems/projects/2
-- Test project: https://github.com/orgs/discrete-event-systems-test/projects/1
-- Linear project: https://linear.app/denman/project/githubcomdiscrete-event-systems-4a3086ae0c45
+- **GitHub Actions** runs both suites against a public, checksum-pinned executable fixture reproduced by the production Dockerfile from source revision `77741ec8b5331617f71416748ef5f06846e43a5d`.
+- **`gha-indie-worker`** executes the exact bounded `.gha/workflows/playwright.yml` at an immutable merged SHA. The worker uses the same verified fixture, while a separately labeled Kubernetes canary owns live Service and compatibility-alias verification without weakening gateway-only ingress.
 
-`gha-indie-worker` execution is intentionally disabled at the platform level until its repository/profile allowlist and runtime network access are certified; planning remains available.
+The fixture release is [`des-browser-fixture-77741ec8`](https://github.com/discrete-event-systems/des-web.rs/releases/tag/des-browser-fixture-77741ec8), pinned to archive SHA-256:
+
+```text
+1d8fe97fc285055558fd2e723789a82118d998a595b57a6e8581562bfd18befa
+```
+
+```bash
+npm ci
+npx playwright install chromium
+DES_FORCE_FIXTURE=1 npm test
+```
+
+The repository retains HTML, JUnit XML, traces, screenshots, videos, target resolution, fixture provenance, and application logs for 14 days. A trusted GitOps dispatcher submits merged immutable revisions to `gha-indie-worker`.
+
+Ownership and rollout policy are documented in the `discrete-event-systems-test/.github` repository and the Linear project `github.com/discrete-event-systems-test`.

@@ -1,29 +1,21 @@
-name: Reusable Playwright browser contracts
+name: Playwright browser evidence
 
 on:
-  workflow_call:
-    inputs:
-      suite_ref:
-        description: Exact merged commit SHA of this test repository
-        required: true
-        type: string
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      suite_ref:
-        description: Test repository ref to execute
-        required: false
-        default: main
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: reusable-playwright-${{ github.workflow }}-${{ github.ref }}
+  group: playwright-evidence-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  browser-contracts:
+  browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -31,8 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: discrete-event-systems-test/des-web-playwright-e2e
-          ref: ${{ inputs.suite_ref }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -41,10 +31,11 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm test
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Upload browser evidence
         if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: reusable-playwright-evidence-${{ github.run_id }}
+          name: des-playwright-evidence-${{ github.run_id }}
           path: |
             playwright-report/
             test-results/
