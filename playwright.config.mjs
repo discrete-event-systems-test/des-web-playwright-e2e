@@ -17,7 +17,6 @@ export default defineConfig({
   ],
   use: {
     ...devices['Desktop Chrome'],
-    baseURL: process.env.DES_BASE_URL ?? 'http://127.0.0.1:18130',
     headless: true,
     ignoreHTTPSErrors: true,
     trace: 'retain-on-failure',
