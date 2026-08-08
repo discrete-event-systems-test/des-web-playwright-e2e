@@ -1,4 +1,10 @@
 import { test, expect } from "@playwright/test";
+import {
+  configureBrowserContext,
+  resolvedTarget,
+  targetRequestOptions,
+  usesServiceLocalPaths,
+} from "./support/target.mjs";
 
 const sharedLayoutPages = [
   ["/", "Discrete-event sims & games"],
@@ -7,8 +13,23 @@ const sharedLayoutPages = [
   ["/games/elevator", "Elevator"],
 ];
 
+function full(path) {
+  return `${resolvedTarget().baseURL}${path}`;
+}
+
+test.beforeEach(async ({ context }) => {
+  test.skip(
+    !usesServiceLocalPaths(),
+    "Service-local contracts are covered by the canonical route suite for public targets",
+  );
+  await configureBrowserContext(context);
+});
+
 test("liveness publishes the DES service contract", async ({ request }) => {
-  const response = await request.get("/healthz");
+  const response = await request.get(
+    full("/healthz"),
+    targetRequestOptions(),
+  );
   expect(response.status()).toBe(200);
   const health = await response.json();
   expect(health).toMatchObject({
@@ -20,7 +41,10 @@ test("liveness publishes the DES service contract", async ({ request }) => {
 });
 
 test("readiness is explicit even in degraded mode", async ({ request }) => {
-  const response = await request.get("/readyz");
+  const response = await request.get(
+    full("/readyz"),
+    targetRequestOptions(),
+  );
   expect([200, 503]).toContain(response.status());
   const readiness = await response.json();
   expect(typeof readiness.ready).toBe("boolean");
@@ -29,7 +53,9 @@ test("readiness is explicit even in degraded mode", async ({ request }) => {
 
 for (const [path, heading] of sharedLayoutPages) {
   test(`${path} renders a shared-layout page`, async ({ page }) => {
-    const response = await page.goto(path, { waitUntil: "domcontentloaded" });
+    const response = await page.goto(full(path), {
+      waitUntil: "domcontentloaded",
+    });
     expect(response?.status()).toBe(200);
     await expect(page.locator("header .brand")).toContainText("des-web");
     await expect(
@@ -41,7 +67,7 @@ for (const [path, heading] of sharedLayoutPages) {
 }
 
 test("routing tool renders its self-contained solver dashboard", async ({ page }) => {
-  const response = await page.goto("/tools/routing", {
+  const response = await page.goto(full("/tools/routing"), {
     waitUntil: "domcontentloaded",
   });
   expect(response?.status()).toBe(200);
@@ -53,7 +79,7 @@ test("routing tool renders its self-contained solver dashboard", async ({ page }
 });
 
 test("mounted-mode HTML publishes only canonical /des navigation", async ({ page }) => {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto(full("/"), { waitUntil: "domcontentloaded" });
   const hrefs = await page.locator("header nav a").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
   );
@@ -68,7 +94,10 @@ test("mounted-mode HTML publishes only canonical /des navigation", async ({ page
 });
 
 test("service-local htmx partial remains available behind the gateway mount", async ({ request }) => {
-  const response = await request.get("/partials/sims");
+  const response = await request.get(
+    full("/partials/sims"),
+    targetRequestOptions(),
+  );
   expect(response.status()).toBe(200);
   const html = await response.text();
   expect(html).toContain("Soccer rotation planner");
@@ -76,7 +105,10 @@ test("service-local htmx partial remains available behind the gateway mount", as
 });
 
 test("catalog API publishes the canonical route envelope without Postgres", async ({ request }) => {
-  const response = await request.get("/api/v1/catalog");
+  const response = await request.get(
+    full("/api/v1/catalog"),
+    targetRequestOptions(),
+  );
   expect(response.status()).toBe(200);
   const catalog = await response.json();
   expect(catalog).toMatchObject({
@@ -97,7 +129,9 @@ test("catalog API publishes the canonical route envelope without Postgres", asyn
 });
 
 test("responses carry browser hardening headers", async ({ page }) => {
-  const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+  const response = await page.goto(full("/"), {
+    waitUntil: "domcontentloaded",
+  });
   const headers = response?.headers() ?? {};
   expect(headers["content-security-policy"]).toContain("default-src 'self'");
   expect(headers["content-security-policy"]).toContain(
@@ -109,7 +143,7 @@ test("responses carry browser hardening headers", async ({ page }) => {
 });
 
 test("unknown paths render the application 404", async ({ page }) => {
-  const response = await page.goto("/not-a-real-des-route", {
+  const response = await page.goto(full("/not-a-real-des-route"), {
     waitUntil: "domcontentloaded",
   });
   expect(response?.status()).toBe(404);
